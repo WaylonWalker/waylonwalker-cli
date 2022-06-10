@@ -50,6 +50,7 @@ setup(
     author="Waylon Walker",
     keywords="None",
     install_requires=["textual"],
+    extras_require={"dev": ["flake8", "black", "setuptools", "wheel"]},
     entry_points={
         "console_scripts": ["waylonwalker = waylonwalker.__main__:main"],
     },
