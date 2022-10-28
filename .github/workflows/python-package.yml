@@ -3,8 +3,9 @@ name: Release waylonwalker
 on:
   workflow_dispatch:
   push:
-    branches:
-      - '*'
+    paths:
+      - 'waylonwalker/**'
+      - 'pyproject.toml'
 
 env:
   HATCH_INDEX_USER: __token__
