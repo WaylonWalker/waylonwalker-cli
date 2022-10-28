@@ -1,10 +1,11 @@
 import webbrowser
 
-from rich.text import Text
+from textual.css.query import NoMatches
 from textual import events
-from textual.app import App
-from textual.widget import Widget
-from textual.widgets import Footer
+from textual.app import App, ComposeResult
+from textual.widgets import Header, Footer, Static
+from textual.containers import Container
+from textual.message import Message
 
 LINKS = [
     ("home", "https://waylonwalker.com/"),
@@ -17,61 +18,97 @@ LINKS = [
 ]
 
 
-class Link(Widget):
-    def __init__(self, label, url):
-        self.label = label
-        self.name = label
+class Link(Static):
+    def __init__(self, title, url):
+        super().__init__(title)
+        self.title = title
         self.url = url
-        self.is_selected = False
-        super().__init__()
 
-    def render(self):
-        return Text.assemble(
-            (self.label, ("black on #c122ac" if self.is_selected else "")),
-            (" ", ("black on #c122ac" if self.is_selected else "")),
-            (self.url, ("white on #c122ac" if self.is_selected else "#c122ac")),
-        )
+    class ClearActive(Message):
+        ...
+
+    def on_click(self):
+        webbrowser.open(self.url)
+
+    def on_enter(self):
+        self.add_class("active")
+
+    async def on_leave(self):
+        await self.emit(self.ClearActive(self))
 
 
 class WaylonWalker(App):
+    CSS = """
+    Static {
+        background: $primary-background;
+        margin: 1;
+        padding: 1;
+    }
+    Static.active {
+        background: $accent;
+    }
+    """
+
+    def action_next(self):
+        self.select(1)
+
+    def action_previous(self):
+        self.select(-1)
+
+    def select(self, n):
+        links = self.query("Link")
+        try:
+            active = self.query_one(".active")
+        except NoMatches:
+            links[0].add_class("active")
+            return
+        active_index = links.nodes.index(active)
+        next_index = active_index + n
+        if next_index >= len(links):
+            next_index = 0
+        elif next_index < 0:
+            next_index = len(links) - 1
+
+        active.remove_class("active")
+        links[next_index].add_class("active")
+
+    def on_link_clear_active(self):
+        for node in self.query(".active").nodes:
+            node.remove_class("active")
+
     async def on_load(self, event: events.Load) -> None:
-        await self.bind("ctrl+c", "quit", show=False)
-        await self.bind("g", "submit", show=False)
-        await self.bind("q", "quit", "Quit")
-        await self.bind("j", "next", "Next")
-        await self.bind("k", "previous", "Previous")
-        await self.bind("enter", "open", "Open")
+        self.bind("ctrl+c", "quit", show=False)
+        self.bind("g", "submit", show=False)
+        self.bind("q", "quit")
+        self.bind("j", "next")
+        self.bind("down", "next")
+        self.bind("k", "previous")
+        self.bind("up", "previous")
+        self.bind("enter", "open")
 
     async def action_open(self) -> None:
+        webbrowser.open(self.query_one(".active").url)
 
-        webbrowser.open(self.links[self.selected].url)
-
-    async def on_mount(self, event: events.Mount) -> None:
-
-        self.selected = 0
-        self.links = [Link(*link) for link in LINKS]
-        self.links[self.selected].is_selected = True
-
-        footer = Footer()
-        await self.view.dock(*self.links, footer)
-
-        self.view.refresh()
-
-    async def action_next(self) -> None:
-        self.links[self.selected].is_selected = False
-        self.links[self.selected].refresh()
-        self.selected = self.selected + 1
-        self.links[self.selected].is_selected = True
-        self.links[self.selected].refresh()
-
-    async def action_previous(self) -> None:
-        self.links[self.selected].is_selected = False
-        self.links[self.selected].refresh()
-        self.selected = self.selected - 1
-        self.links[self.selected].is_selected = True
-        self.links[self.selected].refresh()
+    def compose(self) -> ComposeResult:
+        yield Header()
+        yield Container(*[Link(*link) for link in LINKS])
+        yield Footer()
 
 
 if __name__ == "__main__":
+    from textual.features import parse_features
+    import os
+    import sys
+
+    dev = (
+        "--dev" in sys.argv
+    )  # this works, but putting it behind argparse, click, or typer would be much better
+
+    features = set(parse_features(os.environ.get("TEXTUAL", "")))
+    if dev:
+        features.add("debug")
+        features.add("devtools")
+
+    os.environ["TEXTUAL"] = ",".join(sorted(features))
 
     WaylonWalker.run(title="Waylon Walker")
