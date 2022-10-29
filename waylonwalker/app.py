@@ -3,7 +3,7 @@ import webbrowser
 from textual.css.query import NoMatches
 from textual import events
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Static
+from textual.widgets import Header, Footer, Static, Button
 from textual.containers import Container
 from textual.message import Message
 
@@ -39,7 +39,7 @@ class Link(Static):
 
 class WaylonWalker(App):
     CSS = """
-    Static {
+    Link {
         background: $primary-background;
         margin: 1;
         padding: 1;
@@ -47,9 +47,41 @@ class WaylonWalker(App):
     Static.active {
         background: $accent;
     }
+
+    Static:focus {
+        background: $accent;
+    }
+
+    #about {
+        color: $text-muted;
+            }
     """
+    BINDINGS = [
+        ("ctrl+c", "quit", "Quit"),
+        ("d", "toggle_dark", "Dark Mode"),
+        ("q", "quit", "Quit"),
+        ("j", "next", "Next"),
+        ("down", "next", "Next"),
+        ("k", "previous", "Prev"),
+        ("up", "previous", "Prev"),
+        ("enter", "open", "Open Link"),
+        ("space", "open", "Open Link"),
+    ]
+
+    def on_mount(self):
+        active = self.query("Link").first()
+        active.focus()
+        active.add_class("active")
 
     def action_next(self):
+        # self.screen.focus_next()
+        # self.log(self.screen.visible_widgets)
+        # links = self.query("Link")
+        # # self.log(links.last())
+
+        # # self.screen.set_focus(links.last(), scroll_visible=True)
+        # links.last().scroll_visible()
+        # self.log(links.last() in self.screen.visible_widgets)
         self.select(1)
 
     def action_previous(self):
@@ -71,26 +103,19 @@ class WaylonWalker(App):
 
         active.remove_class("active")
         links[next_index].add_class("active")
+        active = self.query_one(".active")
+        active.scroll_visible()
 
     def on_link_clear_active(self):
         for node in self.query(".active").nodes:
             node.remove_class("active")
-
-    async def on_load(self, event: events.Load) -> None:
-        self.bind("ctrl+c", "quit", show=False)
-        self.bind("g", "submit", show=False)
-        self.bind("q", "quit")
-        self.bind("j", "next")
-        self.bind("down", "next")
-        self.bind("k", "previous")
-        self.bind("up", "previous")
-        self.bind("enter", "open")
 
     async def action_open(self) -> None:
         webbrowser.open(self.query_one(".active").url)
 
     def compose(self) -> ComposeResult:
         yield Header()
+        yield Static("Hey, Im Waylon.  Check out my links.", id="about")
         yield Container(*[Link(*link) for link in LINKS])
         yield Footer()
 
