@@ -1,9 +1,8 @@
 import webbrowser
 
 from textual.css.query import NoMatches
-from textual import events
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Static, Button
+from textual.widgets import Header, Footer, Static
 from textual.containers import Container
 from textual.message import Message
 
