@@ -73,14 +73,6 @@ class WaylonWalker(App):
         active.add_class("active")
 
     def action_next(self):
-        # self.screen.focus_next()
-        # self.log(self.screen.visible_widgets)
-        # links = self.query("Link")
-        # # self.log(links.last())
-
-        # # self.screen.set_focus(links.last(), scroll_visible=True)
-        # links.last().scroll_visible()
-        # self.log(links.last() in self.screen.visible_widgets)
         self.select(1)
 
     def action_previous(self):
