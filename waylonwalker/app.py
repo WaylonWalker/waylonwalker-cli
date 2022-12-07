@@ -1,12 +1,16 @@
 import webbrowser
 
-from textual.css.query import NoMatches
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Static
 from textual.containers import Container
+from textual.css.query import NoMatches
 from textual.message import Message
+from textual.widgets import Footer, Header, Static
 
 LINKS = [
+    (
+        "neovimconf2022-slides",
+        "https://neovimconf2022.waylonwalker.com/extending-vim/slide-0/",
+    ),
     ("home", "https://waylonwalker.com/"),
     ("blog", "https://waylonwalker.com/archive/"),
     ("YouTube", "https://youtube.com/waylonwalker"),
@@ -106,15 +110,18 @@ class WaylonWalker(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Static("Hey, Im Waylon.  Check out my links.", id="about")
+        yield Static(
+            "Hey, Im Waylon.  Join me at Neovimconf Friday Dec, 9 1:15cst", id="about"
+        )
         yield Container(*[Link(*link) for link in LINKS])
         yield Footer()
 
 
 if __name__ == "__main__":
-    from textual.features import parse_features
     import os
     import sys
+
+    from textual.features import parse_features
 
     dev = (
         "--dev" in sys.argv
