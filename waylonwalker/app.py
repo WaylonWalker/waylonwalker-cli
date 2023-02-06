@@ -123,9 +123,10 @@ if __name__ == "__main__":
 
     from textual.features import parse_features
 
-    dev = (
-        "--dev" in sys.argv
-    )  # this works, but putting it behind argparse, click, or typer would be much better
+    # this works, but putting it behind argparse, click, or typer would be much
+    # better
+
+    dev = "--dev" in sys.argv
 
     features = set(parse_features(os.environ.get("TEXTUAL", "")))
     if dev:

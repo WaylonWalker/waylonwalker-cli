@@ -1,15 +1,17 @@
+import os
+import sys
+
+from textual.features import parse_features
+
 from waylonwalker.app import WaylonWalker
 
 
 def main():
 
-    from textual.features import parse_features
-    import os
-    import sys
+    # this works, but putting it behind argparse, click, or typer would be much
+    # better
 
-    dev = (
-        "--dev" in sys.argv
-    )  # this works, but putting it behind argparse, click, or typer would be much better
+    dev = "--dev" in sys.argv
 
     features = set(parse_features(os.environ.get("TEXTUAL", "")))
     if dev:

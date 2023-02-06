@@ -34,15 +34,14 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "black",
-    "flake8",
+    "ruff",
 ]
 
 [tool.hatch.envs.default]
 dependencies = [
     "black",
-    "flake8",
+    "ruff",
 ]
-
 
 [project.license]
 file = "LICENSE"
@@ -62,4 +61,4 @@ include = [
 ]
 
 [tool.hatch.envs.default.scripts]
-lint = "flake8 ."
+lint = "ruff ."
