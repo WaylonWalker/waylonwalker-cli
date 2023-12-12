@@ -4,7 +4,7 @@ from textual.app import App, ComposeResult
 from textual.containers import Container, ScrollableContainer
 from textual.css.query import NoMatches
 from textual.message import Message
-from textual.widgets import Footer, Header, Static, MarkdownViewer, Markdown
+from textual.widgets import Footer, Header, Static, Markdown
 import httpx
 
 LINKS = [
