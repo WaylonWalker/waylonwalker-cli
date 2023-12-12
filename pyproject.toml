@@ -28,6 +28,7 @@ classifiers = [
 ]
 dependencies = [
     "textual",
+    "httpx",
 ]
 
 [project.optional-dependencies]
