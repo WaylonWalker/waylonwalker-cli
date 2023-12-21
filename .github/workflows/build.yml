@@ -1,10 +1,11 @@
-name: build hatch
+name: build waylonwalker
 
 on:
   push:
     tags:
       - waylonwalker-v*
     branches:
+      - waylonwalker-v*
       - master
   pull_request:
     branches:
@@ -19,7 +20,7 @@ defaults:
     shell: bash
 
 env:
-  APP_NAME: hatch
+  APP_NAME: waylonwalker
   PYTHON_VERSION: "3.11"
   PYOXIDIZER_VERSION: "0.24.0"
 
@@ -75,11 +76,6 @@ jobs:
           # Windows
           - target: x86_64-pc-windows-msvc
             os: windows-2022
-          # macOS
-          - target: aarch64-apple-darwin
-            os: macos-12
-          - target: x86_64-apple-darwin
-            os: macos-12
 
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -107,7 +103,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Hatch
+      - name: Install waylonwalker
         run: pip install -e .
 
       - name: Install Rust toolchain
@@ -266,151 +262,6 @@ jobs:
           name: installers
           path: installers/*
 
-  macos-packaging:
-    name: Build macOS installer and sign/notarize artifacts
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    needs: binaries
-    runs-on: macos-12
-
-    env:
-      VERSION: ${{ needs.binaries.outputs.version }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install PyOxidizer ${{ env.PYOXIDIZER_VERSION }}
-        run: pip install pyoxidizer==${{ env.PYOXIDIZER_VERSION }}
-
-      - name: Install rcodesign
-        env:
-          ARCHIVE_NAME: "apple-codesign-0.26.0-x86_64-apple-darwin"
-        run: >-
-          curl -L "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.26.0/$ARCHIVE_NAME.tar.gz" | tar --strip-components=1 -xzf - -C /usr/local/bin "$ARCHIVE_NAME/rcodesign"
-
-      - name: Download staged binaries
-        uses: actions/download-artifact@v3
-        with:
-          name: staged-${{ runner.os }}
-          path: archives
-
-      - name: Extract staged binaries
-        run: |-
-          mkdir bin
-          for f in archives/*; do
-            tar -xzf "$f" -C bin
-          done
-
-      - name: Write credentials
-        env:
-          APPLE_DEVELOPER_ID_APPLICATION_CERTIFICATE: "${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_CERTIFICATE }}"
-          APPLE_DEVELOPER_ID_APPLICATION_PRIVATE_KEY: "${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_PRIVATE_KEY }}"
-          APPLE_DEVELOPER_ID_INSTALLER_CERTIFICATE: "${{ secrets.APPLE_DEVELOPER_ID_INSTALLER_CERTIFICATE }}"
-          APPLE_DEVELOPER_ID_INSTALLER_PRIVATE_KEY: "${{ secrets.APPLE_DEVELOPER_ID_INSTALLER_PRIVATE_KEY }}"
-          APPLE_APP_STORE_CONNECT_API_DATA: "${{ secrets.APPLE_APP_STORE_CONNECT_API_DATA }}"
-        run: |-
-          echo "$APPLE_DEVELOPER_ID_APPLICATION_CERTIFICATE" > /tmp/certificate-application.pem
-          echo "$APPLE_DEVELOPER_ID_APPLICATION_PRIVATE_KEY" > /tmp/private-key-application.pem
-          echo "$APPLE_DEVELOPER_ID_INSTALLER_CERTIFICATE" > /tmp/certificate-installer.pem
-          echo "$APPLE_DEVELOPER_ID_INSTALLER_PRIVATE_KEY" > /tmp/private-key-installer.pem
-          echo "$APPLE_APP_STORE_CONNECT_API_DATA" > /tmp/app-store-connect.json
-
-      # https://developer.apple.com/documentation/security/hardened_runtime
-      - name: Sign binaries
-        run: |-
-          for f in bin/*; do
-            rcodesign sign -vv \
-            --pem-source /tmp/certificate-application.pem \
-            --pem-source /tmp/private-key-application.pem \
-            --code-signature-flags runtime \
-            "$f"
-          done
-
-      # https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution
-      - name: Notarize binaries
-        run: |-
-          mkdir notarize-bin
-
-          cd bin
-          for f in *; do
-            zip "../notarize-bin/$f.zip" "$f"
-          done
-
-          cd ../notarize-bin
-          for f in *; do
-            rcodesign notary-submit -vv \
-            --api-key-path /tmp/app-store-connect.json \
-            "$f"
-          done
-
-      - name: Archive binaries
-        run: |-
-          rm archives/*
-          cd bin
-
-          for f in *; do
-            tar -czf "../archives/$f.tar.gz" "$f"
-          done
-
-      # bin/<APP_NAME>-<VERSION>-<TARGET> -> targets/<TARGET>/<APP_NAME>
-      - name: Prepare binaries
-        run: |-
-          mkdir targets
-          for f in bin/*; do
-            if [[ "$f" =~ ${{ env.VERSION }}-(.+)$ ]]; then
-              target="${BASH_REMATCH[1]}"
-              mkdir "targets/$target"
-              mv "$f" "targets/$target/${{ env.APP_NAME }}"
-            fi
-          done
-
-      - name: Build universal binary
-        run: >-
-          pyoxidizer build macos_universal_binary --release --var version ${{ env.VERSION }}
-
-      - name: Prepare universal binary
-        id: binary
-        run: |-
-          binary=$(echo build/*/release/*/${{ env.APP_NAME }})
-          chmod +x "$binary"
-          echo "path=$binary" >> "$GITHUB_OUTPUT"
-
-      - name: Build PKG
-        run: >-
-          python release/macos/build_pkg.py --binary ${{ steps.binary.outputs.path }} --version ${{ env.VERSION }} staged
-
-      - name: Stage PKG
-        id: pkg
-        run: |-
-          mkdir signed
-          pkg_file="$(ls staged)"
-          echo "path=$pkg_file" >> "$GITHUB_OUTPUT"
-
-      - name: Sign PKG
-        run: >-
-          rcodesign sign -vv --pem-source /tmp/certificate-installer.pem --pem-source /tmp/private-key-installer.pem "staged/${{ steps.pkg.outputs.path }}" "signed/${{ steps.pkg.outputs.path }}"
-
-      - name: Notarize PKG
-        run: >-
-          rcodesign notary-submit --api-key-path /tmp/app-store-connect.json --staple "signed/${{ steps.pkg.outputs.path }}"
-
-      - name: Upload binaries
-        uses: actions/upload-artifact@v3
-        with:
-          name: standalone
-          path: archives/*
-          if-no-files-found: error
-
-      - name: Upload installer
-        uses: actions/upload-artifact@v3
-        with:
-          name: installers
-          path: signed/${{ steps.pkg.outputs.path }}
 
   publish:
     name: Publish release
@@ -419,7 +270,6 @@ jobs:
       - python-artifacts
       - binaries
       - windows-packaging
-      - macos-packaging
     runs-on: ubuntu-latest
 
     permissions:
