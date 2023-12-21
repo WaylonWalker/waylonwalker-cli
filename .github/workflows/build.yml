@@ -103,6 +103,9 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install hatch
+        run: pip install hatch
+
       - name: Install waylonwalker
         run: pip install -e .
 
