@@ -3,7 +3,7 @@ name: build waylonwalker
 on:
   push:
     tags:
-      - waylonwalker-v*
+      - v*
     branches:
       - waylonwalker-v*
       - master
