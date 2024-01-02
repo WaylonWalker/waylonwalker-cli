@@ -307,9 +307,10 @@ jobs:
           name: installers
           path: installers
 
-      - name: Add assets to current release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |-
-            archives/*
+      - name: upload artifacts to release
+        run: |
+          VERSION=`hatch version`
+          gh release upload v${VERSION} \
+            dist/* \
+            archives/* \
             installers/*
