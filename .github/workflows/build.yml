@@ -304,6 +304,3 @@ jobs:
           files: |-
             archives/*
             installers/*
-
-      - name: Push Python artifacts to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.8.11
